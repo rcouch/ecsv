@@ -27,6 +27,7 @@ This parser supports well formed csv files which are
 - any `\r` is ignored
 
 Example:
+
     2,"Supply and use",9,"Barley",1,0.800,"United States",1,"Barley",34,"Imports, trade year",7,"1,000 metric tons",1960,3,"Annual",114,"MY Oct-Sep",248
     2,"Supply and use",9,"Barley",1,0.800,"United States",1,"Barley",34,"Imports, trade year",7,"1,000 metric tons",1961,3,"Annual",114,"MY Oct-Sep",326
 
