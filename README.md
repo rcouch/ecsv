@@ -23,6 +23,7 @@ A ResultPid process will receive 2 messages:
 - `{newline, NewLine}` for each parsed line
 - `{done}` when the parsing is done (usually because eof has been sent)
 
+Take a look at the examples in the directory `examples`. A basic parser accepting one argument as the csv filename will parse it and send the results to a simple process counting the number of lines.
 
 ##Notes
 
