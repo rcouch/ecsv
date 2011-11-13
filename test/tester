@@ -1,0 +1,40 @@
+#! /usr/bin/env escript
+%%! -pa ./ebin/ -pa ./deps/ejson/ebin
+
+main(Args) ->
+    case Args of
+        [File] -> process_it(File);
+        _ -> io:format("Wrong usage: file~n", [])
+    end.
+
+display_result(N) ->
+    receive
+        {newline, [[]]} ->
+            % just ignore it
+            display_result(N);
+        {newline, NewLine} ->
+            %io:format("NEWLINE: ~p~n", [NewLine]),
+            Packet = N rem 1000,
+            case Packet of
+                0 ->
+                    io:format("~p already processed~n", [N]),
+                    ok;
+                _ ->
+                    ok
+            end,
+            display_result(N+1);
+        {done} ->
+            io:format("DONE~n", []),
+            ok
+    end.
+
+process_it(File) ->
+    {ok, IoDevice} = file:open(File, [read]),
+
+    io:format("About to start the result pid~n", []),
+    ResultPid = spawn(fun() -> display_result(0) end),
+    io:format("result pid is ~p~n", [ResultPid]),
+
+    ecsv_reader:parse_from_io(IoDevice, ResultPid),
+
+    ok.
