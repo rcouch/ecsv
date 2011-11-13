@@ -1,7 +1,17 @@
-ECSV
-====
+#ecsv 0.1
 
-ECSV is an Erlang CSV parser.
+**2011 (c) Nicolas R Dufour <nicolas.dufour@nemoworld.info>**
+
+**ecsv** is a simple Erlang CSV parser able to read a file or string and sending back to an erlang process events when a line is parsed.
+
+ecsv is under MIT. See NOTICE file for more details.
+
+###Requirements
+
+* Erlang/OTP R13/R14
+* GNU Make
+
+###How to use it
 
 Composed of 2 modules:
 
@@ -13,7 +23,8 @@ A ResultPid process will receive 2 messages:
 - `{newline, NewLine}` for each parsed line
 - `{done}` when the parsing is done (usually because eof has been sent)
 
----
+
+###Notes
 
 This parser is based on the blog post written by *Andy Till* located
 here [http://andrewtill.blogspot.com/2009/12/erlang-csv-parser.html](http://andrewtill.blogspot.com/2009/12/erlang-csv-parser.html).
