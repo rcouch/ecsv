@@ -6,12 +6,12 @@
 
 ecsv is under MIT. See NOTICE file for more details.
 
-###Requirements
+##Requirements
 
 * Erlang/OTP R13/R14
 * GNU Make
 
-###How to use it
+##How to use it
 
 Composed of 2 modules:
 
@@ -24,7 +24,7 @@ A ResultPid process will receive 2 messages:
 - `{done}` when the parsing is done (usually because eof has been sent)
 
 
-###Notes
+##Notes
 
 This parser is based on the blog post written by *Andy Till* located
 here [http://andrewtill.blogspot.com/2009/12/erlang-csv-parser.html](http://andrewtill.blogspot.com/2009/12/erlang-csv-parser.html).
