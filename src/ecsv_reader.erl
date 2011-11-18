@@ -5,21 +5,19 @@
 -module(ecsv_reader).
 -author("Nicolas R Dufour <nicolas.dufour@nemoworld.info>").
 
--export([parse_from_io/2, parse_from_string/2]).
+-export([stream_from_file/2, stream_from_string/2]).
 
-%% @doc parse using an io device such as file as the string source
-parse_from_io(IoDevice, ResultPid) ->
+stream_from_file(IoDevice, ParsingPid) ->
     IoDeviceIterator = fun(Io) ->
         {io:get_chars(Io, "", 1), Io}
     end,
-    iterate_chars(spawn(ecsv_parser, start_parsing, [ResultPid]), IoDeviceIterator, IoDevice).
+    iterate_chars(ParsingPid, IoDeviceIterator, IoDevice).
 
-%% @doc parse csv from a string
-parse_from_string(String, ResultPid) ->
+stream_from_string(String, ParsingPid) ->
     StringIterator = fun(StringList) ->
         get_first_char(StringList)
     end,
-    iterate_chars(spawn(ecsv_parser, start_parsing, [ResultPid]), StringIterator, String).
+    iterate_chars(ParsingPid, StringIterator, String).
 
 %%
 %% Local Functions
