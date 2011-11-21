@@ -21,7 +21,7 @@
 % This parser supports well formed csv files which are
 % - a set of lines ending with a \n
 % - each line contains a set of fields separated with a comma (,)
-% - each field value can be enclosed with single (') or double quote (")
+% - each field value can be enclosed with double quote (") ONLY
 % - each field value can be empty
 %
 % Please note:
@@ -49,7 +49,7 @@ ready(ResultPid, ParsedCsv, CurrentValue) ->
             NewLine = lists:reverse([lists:reverse(CurrentValue) | ParsedCsv]),
             send_line(ResultPid, NewLine),
             send_eof(ResultPid);
-        {char, Char} when (Char == $") or (Char == $') ->
+        {char, Char} when (Char == $") ->
             % pass an empty string to in_quotes as we do not want the
             % preceeding characters to be included, only those in quotes
             in_quotes(ResultPid, ParsedCsv, ?EMPTY_STRING, Char);
