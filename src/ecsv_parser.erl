@@ -34,6 +34,7 @@
 
 -define(EMPTY_STRING, []).
 
+%% @doc start parsing a csv stream and send the result to ResultPid
 start_parsing(ResultPid) ->
     ready(ResultPid).
 
@@ -103,11 +104,7 @@ skip_to_delimiter(ResultPid, ParsedCsv) ->
 % ----------------------------------------------------------------------------
 
 send_line(ResultPid, NewLine) ->
-    % TODO need to remove that debug line
-    %io:format("Have got a newline ~p~n", [NewLine]),
     ResultPid ! {newline, NewLine}.
 
 send_eof(ResultPid) ->
-    % TODO need to remove that debug line
-    %io:format("End of file!~n", []),
     ResultPid ! {done}.

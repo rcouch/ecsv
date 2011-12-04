@@ -7,12 +7,14 @@
 
 -export([stream_from_file/2, stream_from_string/2]).
 
+%% @doc read a csv file and stream it to a csv parser
 stream_from_file(IoDevice, ParsingPid) ->
     IoDeviceIterator = fun(Io) ->
         {io:get_chars(Io, "", 1), Io}
     end,
     iterate_chars(ParsingPid, IoDeviceIterator, IoDevice).
 
+%% @doc read a string and stream it to a csv parser
 stream_from_string(String, ParsingPid) ->
     StringIterator = fun(StringList) ->
         get_first_char(StringList)
