@@ -5,6 +5,8 @@
 -module(ecsv_parser).
 -author("Nicolas R Dufour <nicolas.dufour@nemoworld.info>").
 
+-include("ecsv.hrl").
+
 %
 % This module is the raw csv parser.
 % It will expect receiving:
@@ -30,21 +32,29 @@
 % - This parser doesn't allow a return (\n) in a field value!
 %
 
--export([start_parsing/1]).
+-export([start_parsing/1, start_parsing/2]).
 
 -define(EMPTY_STRING, []).
 
 %% @doc start parsing a csv stream and send the result to ResultPid
 start_parsing(ResultPid) ->
-    ready(ResultPid).
+    DefaultOptions = default_options(),
+    start_parsing(ResultPid, DefaultOptions).
+
+start_parsing(ResultPid, Options) ->
+    ready(ResultPid, Options).
 
 % -----------------------------------------------------------------------------
 
+default_options() ->
+    #ecsv_opts{ }.
+
 % the ready state is the initial one and also the most common state
 % through the parsing
-ready(ResultPid) ->
-    ready(ResultPid, [], []).
-ready(ResultPid, ParsedCsv, CurrentValue) ->
+ready(ResultPid, Options) ->
+    ready(ResultPid, Options, [], []).
+ready(ResultPid, Options, ParsedCsv, CurrentValue) ->
+    Delimiter = Options#ecsv_opts.delimiter,
     receive
         {eof} ->
             NewLine = lists:reverse([lists:reverse(CurrentValue) | ParsedCsv]),
@@ -53,27 +63,27 @@ ready(ResultPid, ParsedCsv, CurrentValue) ->
         {char, Char} when (Char == $") ->
             % pass an empty string to in_quotes as we do not want the
             % preceeding characters to be included, only those in quotes
-            in_quotes(ResultPid, ParsedCsv, ?EMPTY_STRING, Char);
-        {char, Char} when Char == $, ->
+            in_quotes(ResultPid, Options, ParsedCsv, ?EMPTY_STRING, Char);
+        {char, Char} when Char == Delimiter ->
             ready(
-                ResultPid,
+                ResultPid, Options,
                 [lists:reverse(CurrentValue) | ParsedCsv], ?EMPTY_STRING);
         {char, Char} when Char == $\n ->
             % a new line has been parsed: time to send it back
             NewLine = lists:reverse([lists:reverse(CurrentValue) | ParsedCsv]),
             ResultPid ! {newline, NewLine},
-            ready(ResultPid, [], ?EMPTY_STRING);
+            ready(ResultPid, Options, [], ?EMPTY_STRING);
         {char, Char} when Char == $\r ->
             % ignore line feed characters
-            ready(ResultPid, ParsedCsv, CurrentValue);
+            ready(ResultPid, Options, ParsedCsv, CurrentValue);
         {char, Char} ->
-            ready(ResultPid, ParsedCsv, [Char | CurrentValue])
+            ready(ResultPid, Options, ParsedCsv, [Char | CurrentValue])
     end.
 
 % the in_quotes state adds all chars it receives to the value string until
 % it receives a char matching the initial quote in which case it moves to
 % the skip_to_delimiter state.
-in_quotes(ResultPid, ParsedCsv, CurrentValue, QuoteChar) ->
+in_quotes(ResultPid, Options, ParsedCsv, CurrentValue, QuoteChar) ->
     receive
         {eof} ->
             NewLine = lists:reverse([lists:reverse(CurrentValue) | ParsedCsv]),
@@ -81,24 +91,24 @@ in_quotes(ResultPid, ParsedCsv, CurrentValue, QuoteChar) ->
             send_eof(ResultPid);
         {char, Char} when Char == QuoteChar ->
             skip_to_delimiter(
-                ResultPid,
+                ResultPid, Options,
                 [lists:reverse(CurrentValue) | ParsedCsv]);
         {char, Char} ->
-            in_quotes(ResultPid, ParsedCsv, [Char | CurrentValue], QuoteChar)
+            in_quotes(ResultPid, Options, ParsedCsv, [Char | CurrentValue], QuoteChar)
     end.
 
 % the skip_to_delimiter awaits chars which will get thrown away, when a
 % value delimiter is received the machine moves to the ready state again.
-skip_to_delimiter(ResultPid, ParsedCsv) ->
+skip_to_delimiter(ResultPid, Options, ParsedCsv) ->
     receive
         {eof} ->
             NewLine = lists:reverse(ParsedCsv),
             send_line(ResultPid, NewLine),
             send_eof(ResultPid);
-        {char, Char} when Char == $, ->
-            ready(ResultPid, ParsedCsv, ?EMPTY_STRING);
+        {char, Char} when Char == Options#ecsv_opts.delimiter ->
+            ready(ResultPid, Options, ParsedCsv, ?EMPTY_STRING);
         {_} ->
-            skip_to_delimiter(ResultPid, ParsedCsv)
+            skip_to_delimiter(ResultPid, Options, ParsedCsv)
     end.
 
 % ----------------------------------------------------------------------------
