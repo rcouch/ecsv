@@ -1,4 +1,4 @@
-#ecsv 0.2
+#ecsv 0.3
 
 **2011 (c) Nicolas R Dufour <nicolas.dufour@nemoworld.info>**
 
@@ -13,17 +13,18 @@ ecsv is under MIT. See NOTICE file for more details.
 
 ##Design
 
-Ecsv has 3 components:
+Ecsv is using a stateful parser in which you have to:
 
-- a reader [*ecsv_reader*]: read a file or a string and sends a stream of characters to the parser, and eof when it's the end.
-- a parser [*ecsv_parser*]: parse the character stream and sends to the processor each parsed line.
-- a processor (function given to *ecsv*): function given to *ecsv* to process a parsed line.
+- create a initial state with options and a processing function
+- provide a flow of character to the main parsing function ([*parse_with_character*])
 
 ##How to use it
 
 Create a function that will accept 2 arguments:
 
-- the new parsed row
+- an element which can be
+  - {eof} if the flow had ended
+  - {newline, NewLine} for each parsed line
 - a current state (defaulted to [])
 
 Example: how to count the lines:
