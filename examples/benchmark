@@ -23,7 +23,7 @@ label_if_1k(N) ->
 process_it(File) ->
     {ok, IoDevice} = file:open(File, [read, compressed]),
 
-    DisplayRow = fun(_NewLine, Counter) ->
+    DisplayRow = fun(_Element, Counter) ->
         label_if_1k(Counter),
         Counter + 1
     end,
