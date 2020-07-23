@@ -135,87 +135,70 @@ do_ready(
             PState#pstate{current_value=[Char | CurrentValue]}
     end.
 
-do_in_quotes(
-    Input,
-    #pstate{
-        current_line=CurrentLine,
-        current_value=CurrentValue,
-        process_fun=ProcessingFun,
-        process_fun_state=ProcessingFunState
-    }=PState
-    ) ->
+do_in_quotes(Input, #pstate{current_value = CurrentValue} = PState) ->
     case Input of
-        {eof} ->
-            NewLine = lists:reverse([lists:reverse(CurrentValue) | CurrentLine]),
-            UpdatedProcessingFunState =
-                process_new_line(ProcessingFun, NewLine, ProcessingFunState),
-            UpdatedProcessingFunState1 =
-                ProcessingFun({eof}, UpdatedProcessingFunState),
-            PState#pstate{
-              state=eof,
-              current_line=[],
-              current_value=[],
-              process_fun_state=UpdatedProcessingFunState1
-             };
+        {eof} -> on_eof(on_new_line(PState));
         {char, Char} when Char == $" ->
             %% Handle the case when there is an escaped double quote
             %% in the field
-            case CurrentValue of
-                [$\\ | V] ->
-                    PState#pstate{current_value=[Char | V]};
-                _ ->
-                    PState#pstate{
-                      state=skip_to_delimiter,
-                      current_line=[lists:reverse(CurrentValue) | CurrentLine],
-                      current_value=[]
-                     }
-            end;
+            PState#pstate{
+              state=skip_to_delimiter,
+              current_value=CurrentValue
+             };
         {char, Char} ->
+            % io:format("do_in_quotes: ~s~n", [ lists:reverse([Char | CurrentValue]) ]),
             PState#pstate{current_value=[Char | CurrentValue]}
     end.
 
-do_skip_to_delimiter(
-    Input,
-    #pstate{
-        opts=Opts,
-        current_line=CurrentLine,
-        current_value=CurrentValue,
-        process_fun=ProcessingFun,
-        process_fun_state=ProcessingFunState
-    }=PState
-    ) ->
+do_skip_to_delimiter(Input, #pstate{
+                                opts                = Opts,
+                                current_line        = CurrentLine,
+                                current_value       = CurrentValue
+                            } = PState) ->
     case Input of
-        {eof} ->
-            NewLine = lists:reverse([lists:reverse(CurrentValue) | CurrentLine]),
-            UpdatedProcessingFunState =
-                process_new_line(ProcessingFun, NewLine, ProcessingFunState),
-            UpdatedProcessingFunState1 =
-                ProcessingFun({eof}, UpdatedProcessingFunState),
+        {eof} -> on_eof(on_new_line(PState));
+        {char, Char} when (Char == $\n) -> on_new_line(PState);
+        {char, Char} when (Char == Opts#ecsv_opts.delimiter) ->
             PState#pstate{
-                state=eof,
-                current_line=[],
-                current_value=[],
-                process_fun_state=UpdatedProcessingFunState1
+                state           = ready,
+                current_value   = [],
+                current_line    = [lists:reverse(CurrentValue) | CurrentLine]
             };
-        {char, Char} when Char == Opts#ecsv_opts.delimiter ->
+        {char, Char} ->
+            % io:format("do_skip_to_delimiter: ~s~n", [ lists:reverse([Char | CurrentValue]) ]),
             PState#pstate{
-                state=ready,
-                current_value=[]
-            };
-        {char, Char} when Char == $\n ->
-            % a new line has been parsed: time to send it back
-            NewLine = lists:reverse(CurrentLine),
-            UpdatedProcessingFunState =
-                process_new_line(ProcessingFun, NewLine, ProcessingFunState),
-            PState#pstate{
-                state=ready,
-                current_line=[],
-                current_value=[],
-                process_fun_state=UpdatedProcessingFunState
-            };
-        {char, _} ->
-            PState
+                state           = in_quotes,
+                current_value   = [Char | CurrentValue]
+            }
     end.
+
+on_new_line(#pstate{
+                        current_line        = CurrentLine,
+                        current_value       = CurrentValue,
+                        process_fun         = ProcessingFun,
+                        process_fun_state   = ProcessingFunState
+                    } = PState) ->
+    NewLine = lists:reverse([lists:reverse(CurrentValue) | CurrentLine]),
+    UpdatedProcessingFunState =
+        process_new_line(ProcessingFun, NewLine, ProcessingFunState),
+    PState#pstate{
+        state               = ready,
+        current_line        = [],
+        current_value       = [],
+        process_fun_state   = UpdatedProcessingFunState
+    }.
+
+on_eof(#pstate{
+                    process_fun         = ProcessingFun,
+                    process_fun_state   = ProcessingFunState
+              } = PState) ->
+    UpdatedProcessingFunState = ProcessingFun({eof}, ProcessingFunState),
+    PState#pstate{
+        state               = eof,
+        current_line        = [],
+        current_value       = [],
+        process_fun_state   = UpdatedProcessingFunState
+    }.
 
 process_new_line(_ProcessingFun, [], State) ->
     % ignore empty lines

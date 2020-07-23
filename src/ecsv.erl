@@ -1,7 +1,3 @@
-
-% This file is part of ecsv released under the MIT license.
-% See the LICENSE file for more information.
-
 -module(ecsv).
 -author("Nicolas R Dufour <nicolas.dufour@nemoworld.info>").
 
