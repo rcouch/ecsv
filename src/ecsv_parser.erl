@@ -28,6 +28,7 @@
 
 -record(pstate, {
     state, % ready, in_quotes, skip_to_delimiter, eof
+    skipped_backslash,
     current_line,
     current_value,
     opts,
@@ -50,6 +51,7 @@ init(ProcessingFun, ProcessingFunInitState) ->
 init(Opts, ProcessingFun, ProcessingFunInitState) ->
     #pstate{
         state = ready,
+        skipped_backslash = true,
         current_line = [],
         current_value = [],
         opts = Opts,
@@ -111,11 +113,12 @@ do_ready(
         {char, Char} when (Char == $") ->
             % pass an empty string to in_quotes as we do not want the
             % preceeding characters to be included, only those in quotes
-            PState#pstate{state=in_quotes, current_value=[]};
+            PState#pstate{state=in_quotes, current_value=[], skipped_backslash = true};
         {char, Char} when Char == Delimiter ->
             PState#pstate{
                 current_line=[lists:reverse(CurrentValue) | CurrentLine],
-                current_value=[]
+                current_value=[],
+                skipped_backslash = true
             };
         {char, Char} when Char == $\n ->
             % a new line has been parsed: time to send it back
@@ -135,26 +138,44 @@ do_ready(
     end.
 
 do_in_quotes(Input, #pstate{current_value = CurrentValue} = PState) ->
+    %io:format("input ~p~n", [Input]),
     case Input of
         {eof} -> on_eof(on_new_line(PState));
         {char, Char} when Char == $" ->
             case CurrentValue of
-		[ $\\ | TCurrentValue] ->
+		[ $\\ | TCurrentValue] when (PState#pstate.skipped_backslash == false) ->
                     %% Handle the case when there is an escaped double quote in the field
-                    PState#pstate{current_value=[Char | TCurrentValue]};
-                _ ->
+                    %io:format("do_in_quotes:2: ~p~n", [ lists:reverse([Char | TCurrentValue]) ]),
                     PState#pstate{
-              		state=skip_to_delimiter,
-              		current_value=CurrentValue
+                        current_value=[Char | TCurrentValue],
+                        skipped_backslash = true
+                    };
+                _ ->
+                    %io:format("do_in_quotes:3: ~p~n", [ lists:reverse(CurrentValue) ]),
+                    PState#pstate{
+              		state = skip_to_delimiter,
+              		current_value = CurrentValue,
+                        skipped_backslash = true
              	    }
 	   end;
         {char, Char} when Char == $\\ ->
+            %io:format("do_in_quotes:5: ~p~n", [ PState#pstate.skipped_backslash ] ),
 	    case CurrentValue of
-		[ $\\ | _] -> PState;
-                _ -> PState#pstate{current_value=[Char | CurrentValue]}
+		[ $\\ | _] when (PState#pstate.skipped_backslash == false) ->
+                    PState#pstate{skipped_backslash = true};
+                _ ->
+                    %io:format("do_in_quotes:6: ~p~n", [ lists:reverse([Char | CurrentValue]) ]),
+                    PState#pstate{
+                        current_value=[Char | CurrentValue],
+                        skipped_backslash = false
+                    }
 	    end;
         {char, Char} ->
-            PState#pstate{current_value=[Char | CurrentValue]}
+            %io:format("do_in_quotes:1: ~p~n", [ lists:reverse([Char | CurrentValue]) ]),
+            PState#pstate{
+                current_value=[Char | CurrentValue],
+                skipped_backslash = true
+            }
     end.
 
 do_skip_to_delimiter(Input, #pstate{
@@ -172,6 +193,7 @@ do_skip_to_delimiter(Input, #pstate{
                 current_line    = [lists:reverse(CurrentValue) | CurrentLine]
             };
         {char, Char} ->
+            %io:format("do_skip_to_delimiter: ~s~n", [ lists:reverse([Char | CurrentValue]) ]),
             PState#pstate{
                 state           = in_quotes,
                 current_value   = [Char | CurrentValue]
