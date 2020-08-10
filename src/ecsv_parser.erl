@@ -141,10 +141,8 @@ do_in_quotes(Input, #pstate{current_value = CurrentValue} = PState) ->
             case CurrentValue of
 		[ $\\ | TCurrentValue] ->
                     %% Handle the case when there is an escaped double quote in the field
-                    io:format("do_in_quotes:2: ~p~n", [ lists:reverse([Char | TCurrentValue]) ]),
                     PState#pstate{current_value=[Char | TCurrentValue]};
                 _ ->
-                    io:format("do_in_quotes:3: ~p~n", [ lists:reverse(CurrentValue) ]),
                     PState#pstate{
               		state=skip_to_delimiter,
               		current_value=CurrentValue
@@ -156,7 +154,6 @@ do_in_quotes(Input, #pstate{current_value = CurrentValue} = PState) ->
                 _ -> PState#pstate{current_value=[Char | CurrentValue]}
 	    end;
         {char, Char} ->
-            io:format("do_in_quotes:1: ~p~n", [ lists:reverse([Char | CurrentValue]) ]),
             PState#pstate{current_value=[Char | CurrentValue]}
     end.
 
@@ -175,7 +172,6 @@ do_skip_to_delimiter(Input, #pstate{
                 current_line    = [lists:reverse(CurrentValue) | CurrentLine]
             };
         {char, Char} ->
-            io:format("do_skip_to_delimiter: ~s~n", [ lists:reverse([Char | CurrentValue]) ]),
             PState#pstate{
                 state           = in_quotes,
                 current_value   = [Char | CurrentValue]
