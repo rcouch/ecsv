@@ -1,14 +1,9 @@
+PROJECT = ecsv
+PROJECT_VERSION = $(shell git describe --tag --abbrev=0)
 
-.PHONY: deps doc
+app:: rebar.config
 
-all: deps compile
+include $(if $(ERLANG_MK_FILENAME),$(ERLANG_MK_FILENAME), erlang.mk)
 
-compile:
-	@./rebar compile
-
-deps:
-	@./rebar get-deps
-
-clean: 
-	@./rebar clean
-
+ERLC_OPTS += $(ERLC_COMPILE_OPTS)
+TEST_ERLC_OPTS += $(ERLC_COMPILE_OPTS)
